@@ -1,0 +1,82 @@
+#cloud-config
+datasource:
+  Ec2:
+    strict_id: false
+ssh_pwauth: no
+users:
+  - name: ${username}
+    groups: sudo
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    ssh_authorized_keys:
+      - ${ssh_key}
+write_files:
+  - path: /tmp/setup-bbb.sh
+    permissions: '755'
+    content: |
+      #!/bin/bash
+
+      update-locale LANG=en_US.UTF-8
+
+      usermod -aG docker ${username}
+
+      wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh | bash -s -- -v jammy-300 -s ${domain} -e ${email} -g
+
+      until systemctl is-active --quiet nginx; do
+        sleep 10
+      done
+
+  - path: /tmp/whiteboard-container.jsx
+    permissions: '644'
+    content: |
+      import React, { useMemo, useEffect } from 'react';
+      import PropTypes from 'prop-types';
+      import ErrorBoundaryWithReload from '../common/error-boundary/error-boundary-with-reload/component';
+
+      const WhiteboardContainer = (props) => {
+        const whiteboardUrl = useMemo(() => {
+          const searchParams = new URLSearchParams(window.location.search);
+          const whiteboardId = searchParams.get('whiteboardId');
+          
+          const baseUrl = '${whiteboard_base_url}';
+          
+          return `$${baseUrl}`;
+        }, []);
+
+        useEffect(() => {
+          if (window.location.search.includes('whiteboardId')) {
+            const url = new URL(window.location);
+            url.searchParams.delete('whiteboardId');
+            window.history.replaceState({}, '', url);
+          }
+        }, []);
+
+        return (
+          <ErrorBoundaryWithReload>
+            <iframe
+              src={whiteboardUrl}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+            />
+          </ErrorBoundaryWithReload>
+        );
+      };
+
+      WhiteboardContainer.propTypes = {
+        intl: PropTypes.shape({
+          formatMessage: PropTypes.func.isRequired,
+        }).isRequired,
+        zoomChanger: PropTypes.func.isRequired,
+        fitToWidth: PropTypes.bool.isRequired,
+      };
+
+      export default WhiteboardContainer;
+
+runcmd:
+  - /tmp/setup-bbb.sh
+  - |
+    cd /home/${username}
+    git clone https://github.com/bigbluebutton/bigbluebutton.git
+    cd bigbluebutton/bigbluebutton-html5/
+    npm install
+    cp /tmp/whiteboard-container.jsx ./imports/ui/components/whiteboard/container.jsx
+    ./deploy.sh

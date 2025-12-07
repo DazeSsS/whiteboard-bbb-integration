@@ -1,0 +1,24 @@
+# Disk
+disk_size = 30
+image_id  = "fd8gm9cegc39t4nsm8cv"
+
+# Address
+address_id = "your_address_id"
+
+# VM
+zone             = "ru-central1-d"
+vm_cores         = 4
+vm_memory        = 8
+vm_core_fraction = 50
+vm_preemptible   = true
+
+# User settings
+username = "username"
+ssh_key  = "your_ssh_key"
+email    = "example@gmail.com"
+
+# BBB settings
+domain = "example.com"
+
+# Whiteboard settings
+whiteboard_base_url = "http://example.com"
