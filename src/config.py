@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     BBB_SECRET: str
     BBB_API_URL: str
 
+    # Whitebooard
+    WHITEBOARD_BASE_URL: str
+
     def get_db_url(self) -> str:
         return (
             f'postgresql+psycopg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@'

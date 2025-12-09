@@ -10,7 +10,15 @@ class QuerySchema(CamelSchema):
         extra='allow',
     )
     
-    def to_query_string(self):
-        data = self.model_dump(by_alias=True)
+    def to_query_string(
+        self,
+        include_fields: list[str] | None = None,
+        exclude_fields: list[str] | None = None
+    ):
+        data = self.model_dump(
+            include=include_fields,
+            exclude=exclude_fields,
+            by_alias=True
+        )
         query = urlencode(data)
         return query

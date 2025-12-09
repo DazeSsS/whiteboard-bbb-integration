@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import Field
 from fastapi import Query
 
@@ -15,7 +13,7 @@ class MeetingCreate(QuerySchema):
     def from_query(
         cls,
         name: str = Query(..., alias='name'),
-        meeting_ID: str = Query(..., alias='meetingID'),
+        meeting_ID: str | None = Query(None, alias='meetingID'),
     ):
         return cls(
             name=name,

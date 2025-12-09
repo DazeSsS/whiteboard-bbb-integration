@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Generic, TypeVar, Optional
@@ -18,17 +20,16 @@ class SQLAlchemyRepository(Generic[ModelType]):
         result = await self.session.scalars(query)
         return result.all()
 
-    async def get_by_id(self, id: int) -> ModelType | None:
+    async def get_by_id(self, id: Any) -> ModelType | None:
         result = await self.session.get(self.model, id)
         return result
 
     async def add(self, obj: ModelType) -> ModelType:
         self.session.add(obj)
-        await self.session.commit()
-        await self.session.refresh(obj)
+        await self.session.flush()
         return obj
 
-    async def delete_by_id(self, id: int) -> None:
-        item = await self.session.get(self.model, id)
-        await self.session.delete(item)
-        await self.session.commit()
+    async def delete(self, obj: ModelType) -> ModelType:
+        await self.session.delete(obj)
+        await self.session.flush()
+        return obj

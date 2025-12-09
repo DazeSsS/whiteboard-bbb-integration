@@ -1,3 +1,4 @@
 from .base import BaseSchema, CamelSchema
-from .bbb import JoinParams, MeetingCreate
+from .meeting import JoinParams, MeetingCreate
 from .query import QuerySchema
+from .user import UserCreate, UserResponse

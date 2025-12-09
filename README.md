@@ -1,7 +1,7 @@
 # Backend for BBB integration to whiteboard
 
 
-## 🚀 Quick start (неактуально)
+## 🚀 Quick start
 
 ### Requirements
 - Python 3.12 or higher

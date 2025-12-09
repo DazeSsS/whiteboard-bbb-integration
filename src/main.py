@@ -7,7 +7,7 @@ from app.api.routers import api_router
 
 
 app = FastAPI(
-    title='My Title'
+    title='Big Blue Button'
 )
 
 set_exceptions(app)
