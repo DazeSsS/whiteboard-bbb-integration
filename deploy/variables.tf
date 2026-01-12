@@ -83,3 +83,11 @@ variable "whiteboard_base_url" {
   type        = string
   default     = "http://example.com"
 }
+
+
+# API settings
+variable "api_base_url" {
+  description = "Адрес API"
+  type        = string
+  default     = "http://example.com"
+}

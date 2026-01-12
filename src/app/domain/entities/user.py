@@ -1,19 +1,21 @@
-from datetime import datetime
-
 from pydantic import Field
-from fastapi import Query
-
-from .base import CamelSchema
+from .base import BaseSchema, CamelSchema
 from app.domain.enums import UserRole
 
 
 class UserCreate(CamelSchema):
-    internal_id: int
-    group: str | None = None
-    position: str | None = None
-    role: str = 'admin'
+    name: str = Field(min_length=1)
+
+
+class UserUpdate(UserCreate):
+    name: str = Field(min_length=1)
 
 
 class UserResponse(UserCreate):
     id: int
-    name: str
+    role: UserRole
+
+
+class UserData(BaseSchema):
+    id: int
+    token: str

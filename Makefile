@@ -4,6 +4,9 @@ revision:
 migrate:
 	docker compose run --build --rm app alembic upgrade head
 
+downgrade:
+	docker compose run --build --rm app alembic downgrade ${revision}
+
 drop:
 	docker compose run --build --rm app python3 -m src.scripts.drop_db
 

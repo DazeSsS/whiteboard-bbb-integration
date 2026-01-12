@@ -29,25 +29,56 @@ write_files:
   - path: /tmp/whiteboard-container.jsx
     permissions: '644'
     content: |
-      import React, { useMemo, useEffect } from 'react';
+      import React, { useMemo, useEffect, useState } from 'react';
       import PropTypes from 'prop-types';
       import ErrorBoundaryWithReload from '../common/error-boundary/error-boundary-with-reload/component';
 
       const WhiteboardContainer = (props) => {
+        const [whiteboardId, setWhiteboardId] = useState(null);
+        const [userToken, setUserToken] = useState(null);
+
         const whiteboardUrl = useMemo(() => {
-          const searchParams = new URLSearchParams(window.location.search);
-          const whiteboardId = searchParams.get('whiteboardId');
-          
-          const baseUrl = '${whiteboard_base_url}';
-          
-          return `$${baseUrl}`;
-        }, []);
+          if (!whiteboardId) {
+            return `${whiteboard_base_url}/auth`;
+          }
+
+          const url = new URL(`${whiteboard_base_url}/app/board/$${whiteboardId}`);
+
+          if (userToken) {
+            url.searchParams.append('token', userToken);
+          }
+
+          return url.toString();
+        }, [whiteboardId, userToken]);
 
         useEffect(() => {
-          if (window.location.search.includes('whiteboardId')) {
-            const url = new URL(window.location);
-            url.searchParams.delete('whiteboardId');
-            window.history.replaceState({}, '', url);
+          const meetingId = sessionStorage.getItem('meetingId');
+          const userId = sessionStorage.getItem('extId');
+          
+          if (meetingId) {
+            fetch(`${api_base_url}/meetings/whiteboard?internalMeetingId=$${meetingId}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data) {
+                  setWhiteboardId(data);
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching whiteboard:', error);
+              });
+          }
+
+          if (userId) {
+            fetch(`${api_base_url}/users/token?userId=$${userId}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data) {
+                  setUserToken(data);
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching token:', error);
+              });
           }
         }, []);
 
@@ -55,7 +86,14 @@ write_files:
           <ErrorBoundaryWithReload>
             <iframe
               src={whiteboardUrl}
-              style={{ width: '100%', height: '100%', border: 'none' }}
+              style={{
+                background: 'white',
+                backgroundColor: 'white',
+                border: 'none',
+                display: 'block'
+              }}
+              width="100%"
+              height="100%"
             />
           </ErrorBoundaryWithReload>
         );

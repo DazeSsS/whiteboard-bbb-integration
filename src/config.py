@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # Whitebooard
     WHITEBOARD_BASE_URL: str
+    WHITEBOARD_URL_PATH: str
 
     def get_db_url(self) -> str:
         return (

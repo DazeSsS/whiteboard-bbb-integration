@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.middleware import BearerTokenMiddleware
 from config import settings
 from app.api.exceptions import set_exceptions
 from app.api.routers import api_router
@@ -12,10 +13,11 @@ app = FastAPI(
 
 set_exceptions(app)
 
+
 app.include_router(api_router)
 
-origins = settings.ORIGINS.split(',')
 
+origins = settings.ORIGINS.split(',')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -23,3 +25,5 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'], 
 )
+
+app.add_middleware(BearerTokenMiddleware)
