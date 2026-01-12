@@ -118,3 +118,7 @@ runcmd:
     npm install
     cp /tmp/whiteboard-container.jsx ./imports/ui/components/whiteboard/container.jsx
     ./deploy.sh
+  - |
+    cd /home/${username}
+    git clone https://github.com/DazeSsS/whiteboard-bbb-integration.git .
+    cp .env.example .env

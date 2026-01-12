@@ -10,6 +10,9 @@ downgrade:
 drop:
 	docker compose run --build --rm app python3 -m src.scripts.drop_db
 
+setmoder:
+	docker compose run --build --rm app python3 -m src.scripts.set_moderator
+
 db:
 	docker compose up -d db
 
