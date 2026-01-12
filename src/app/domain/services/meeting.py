@@ -105,6 +105,18 @@ class MeetingService:
         request = f'{settings.BBB_API_URL}/join?{query_string}&checksum={checksum}'
 
         return request
+    
+    async def end_meeting(self, meeting_ID: str):
+        query_string = f'meetingID={meeting_ID}'
+        checksum = self.generate_checksum(
+            call_name='end',
+            query=query_string
+        )
+
+        request = f'{settings.BBB_API_URL}/end?{query_string}&checksum={checksum}'
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            await client.get(request)
 
     async def get_meeting_info(self, meeting_ID: str):
         query_string = f'meetingID={meeting_ID}'

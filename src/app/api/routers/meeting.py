@@ -39,6 +39,15 @@ async def get_join_link(
     return response
 
 
+@router.get('/end')
+async def end_meeting(
+    meeting_ID: Annotated[str, Query(..., alias='meetingID')],
+    meeting_service: Annotated[MeetingService, Depends(get_meeting_service)],
+):
+    await meeting_service.end_meeting(meeting_ID=meeting_ID)
+    return {'status': 'success'}
+
+
 @router.get('/active')
 async def get_active_meeting(
     whiteboard_id: Annotated[int, Query(..., alias='whiteboardId')],
