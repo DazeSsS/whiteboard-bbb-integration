@@ -23,7 +23,7 @@ async def set_moderator(user_id: int):
                 user = await user_repo.get_by_id(id=user_id)
                 user.role = UserRole.MODERATOR
         except Exception:
-            raise
+            print('Ошибка при смене роли...')
 
         print(f'Пользователю с идентификатором {user_id} успешно назначена роль "moderator"')
 

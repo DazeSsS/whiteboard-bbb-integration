@@ -132,7 +132,7 @@ class MeetingService:
 
         return response.text
     
-    async def get_active_meeting(self, whiteboard_id: int):
+    async def get_active_meeting(self, whiteboard_id: int) -> MeetingResponse | None:
         query_string = f''
         checksum = self.generate_checksum(
             call_name='getMeetings',
@@ -145,7 +145,6 @@ class MeetingService:
             response = await client.get(request)
 
         root = ElementTree.fromstring(response.text)
-        print(response.text)
         returncode = root.find('returncode').text
         
         if returncode == ReturnCode.FAILED:
@@ -162,6 +161,7 @@ class MeetingService:
 
         active_meeting = None
         for meeting_elem in meetings_elem.findall('meeting'):
+            meeting_name = meeting_elem.find('meetingName').text
             meeting_ID = meeting_elem.find('meetingID').text
             is_active = meeting_elem.find('endTime').text == '0'
 
@@ -171,7 +171,10 @@ class MeetingService:
                 whiteboard = int(whiteboard_elem.text)
 
             if is_active and (whiteboard == whiteboard_id):
-                active_meeting = MeetingResponse(meeting_ID=meeting_ID)
+                active_meeting = MeetingResponse(
+                    name=meeting_name,
+                    meeting_ID=meeting_ID
+                )
                 break
 
         return active_meeting

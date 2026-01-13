@@ -25,6 +25,7 @@ class MeetingCreate(QuerySchema):
     
 
 class MeetingResponse(CamelSchema):
+    name: str
     meeting_ID: str = Field(..., alias='meetingID')
 
 

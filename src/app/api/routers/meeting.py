@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.dependencies import get_current_user_data, get_meeting_service
 from app.domain.services.meeting import MeetingService
-from app.domain.entities import JoinParams, MeetingCreate, UserData
+from app.domain.entities import JoinParams, MeetingCreate, MeetingResponse, UserData
 
 
 router = APIRouter(
@@ -52,7 +52,7 @@ async def end_meeting(
 async def get_active_meeting(
     whiteboard_id: Annotated[int, Query(..., alias='whiteboardId')],
     meeting_service: Annotated[MeetingService, Depends(get_meeting_service)],
-):
+) -> MeetingResponse | None:
     response = await meeting_service.get_active_meeting(whiteboard_id=whiteboard_id)
     return response
 
