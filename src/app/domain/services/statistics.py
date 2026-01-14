@@ -111,7 +111,7 @@ class StatisticsService:
         while events_path is None:
             target_dir = list(root.rglob(internal_meeting_id))
             if target_dir:
-                events_file = list(root.rglob('events.xml'))
+                events_file = list(target_dir[0].rglob('events.xml'))
                 if events_file:
                     events_path = events_file[0]
                 else:
@@ -230,7 +230,7 @@ class StatisticsService:
                         elif last_value == 'false' and current_value == 'true':
                             user_unmuted += current_time - last_time
                         elif last_value == 'true' and current_value == 'true':
-                            user_muted += meeting_data.get('endTime') - current_time
+                            user_muted += current_time - last_time
 
                         last_update = update
                 
@@ -368,13 +368,12 @@ class StatisticsService:
 
         muted = user.get('muted')
         if muted:
-            if muted[-1]['value'] == 'false':
-                user['muted'].append(
-                    {
-                        'date': datetime.fromisoformat(event['date']),
-                        'value': 'true'
-                    }
-                )
+            user['muted'].append(
+                {
+                    'date': datetime.fromisoformat(event['date']),
+                    'value': 'true'
+                }
+            )
 
         talking = user.get('talking')
         if talking:
@@ -404,10 +403,17 @@ class StatisticsService:
 
         for user_id in self.users:
             user = self.users.get(user_id)
-            
-            muted = user.get('muted')
-            if muted:
-                if muted[-1]['value'] == 'false':
+            left = user.get('left')
+
+            if not left:
+                user.update(
+                    {
+                        'left': datetime.fromisoformat(event['date'])
+                    }
+                )
+    
+                muted = user.get('muted')
+                if muted:
                     user['muted'].append(
                         {
                             'date': datetime.fromisoformat(event['date']),
@@ -415,12 +421,12 @@ class StatisticsService:
                         }
                     )
 
-            talking = user.get('talking')
-            if talking:
-                if talking[-1]['value'] == 'true':
-                    user['talking'].append(
-                        {
-                            'date': datetime.fromisoformat(event['date']),
-                            'value': 'false'
-                        }
-                    )
+                talking = user.get('talking')
+                if talking:
+                    if talking[-1]['value'] == 'true':
+                        user['talking'].append(
+                            {
+                                'date': datetime.fromisoformat(event['date']),
+                                'value': 'false'
+                            }
+                        )

@@ -1,4 +1,5 @@
 import asyncio
+from pprint import pprint
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
@@ -15,7 +16,7 @@ async def get_stats(internal_id: str):
     async with AsyncSession(engine) as session:
         stats_service = get_statistics_service(session)
         meeting_stats = await stats_service.process_stats(internal_meeting_id=internal_id)
-        print(meeting_stats)
+        pprint(meeting_stats)
 
 
 if __name__ == '__main__':

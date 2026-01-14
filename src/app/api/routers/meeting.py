@@ -101,7 +101,7 @@ async def get_events(
     event_type = event['data']['id']
     internal_meeting_id = event['data']['attributes']['meeting']['internal-meeting-id']
 
-    if event_type != 'rap-archive-ended':
+    if event_type != 'meeting-ended':
         return
     
     await statistics_service.process_stats(internal_meeting_id=internal_meeting_id)

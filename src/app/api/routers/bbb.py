@@ -23,7 +23,7 @@ async def set_hook(
 
 
 @router.get('/hooks/list')
-async def set_hook(
+async def get_hook_list(
     meeting_service: Annotated[MeetingService, Depends(get_meeting_service)],
     meeting_ID: Annotated[str | None, Query(..., alias='meetingID')] = None,
 ) -> str:
