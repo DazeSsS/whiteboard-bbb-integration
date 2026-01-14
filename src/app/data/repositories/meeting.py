@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.repositories.base import SQLAlchemyRepository
@@ -25,3 +25,18 @@ class MeetingRepository(SQLAlchemyRepository[Meeting]):
         )
         result = await self.session.scalar(query)
         return result
+    
+    async def update_meeting_stats(self, internal_id: str, stats: dict):
+        query = (
+            update(Meeting)
+            .where(Meeting.id == internal_id)
+            .values(analytics=stats)
+            .returning(Meeting)
+        )
+        result = await self.session.execute(query)
+        updated_meeting = result.scalar_one_or_none()
+        
+        if updated_meeting:
+            return await self.session.merge(updated_meeting)
+        
+        return None

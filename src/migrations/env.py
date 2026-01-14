@@ -9,7 +9,7 @@ from alembic import context
 
 from database import Base
 
-from app.data.models import Meeting, User
+from app.data.models import Meeting, StatsModule, User
 
 from config import settings
 

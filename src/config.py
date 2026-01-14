@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # Big Blue Button
     BBB_SECRET: str
     BBB_API_URL: str
+    BBB_RECORDINGS_PATH: str
+    APP_RECORDINGS_PATH: str
 
     # Whitebooard
     WHITEBOARD_BASE_URL: str

@@ -1,9 +1,12 @@
+import json
+from urllib.parse import parse_qs
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
-from app.dependencies import get_current_user_data, get_meeting_service
-from app.domain.services.meeting import MeetingService
+from config import settings
+from app.dependencies import get_current_user_data, get_meeting_service, get_statistics_service
+from app.domain.services import MeetingService, StatisticsService
 from app.domain.entities import JoinParams, MeetingCreate, MeetingResponse, UserData
 
 
@@ -82,3 +85,23 @@ async def get_meeting_info(
 ) -> str:
     response = await meeting_service.get_meeting_info(meeting_ID=meeting_ID)
     return response
+
+
+@router.post('/events')
+async def get_events(
+    request: Request,
+    statistics_service: Annotated[StatisticsService, Depends(get_statistics_service)],
+):
+    raw_body = await request.body()
+    decoded_body = raw_body.decode()
+
+    raw_event = parse_qs(decoded_body)['event'][0]
+    event = json.loads(raw_event)[0]
+    
+    event_type = event['data']['id']
+    internal_meeting_id = event['data']['attributes']['meeting']['internal-meeting-id']
+
+    if event_type != 'rap-archive-ended':
+        return
+    
+    await statistics_service.process_stats(internal_meeting_id=internal_meeting_id)

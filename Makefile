@@ -13,6 +13,9 @@ drop:
 setmoder:
 	docker compose run --build --rm app python3 -m src.scripts.set_moderator
 
+getstats:
+	docker compose run --build --rm app python3 -m src.scripts.get_stats
+
 db:
 	docker compose up -d db
 

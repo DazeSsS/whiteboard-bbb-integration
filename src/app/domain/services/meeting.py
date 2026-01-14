@@ -198,3 +198,50 @@ class MeetingService:
             internal_id=internal_meeting_id
         )
         return whiteboard_id
+    
+    async def set_hook(self, callback_url: str, event_id: str | None):
+        query_string = f'callbackURL={callback_url}'
+
+        if event_id is not None:
+            query_string += f'&eventID={event_id}'
+
+        checksum = self.generate_checksum(
+            call_name='hooks/create',
+            query=query_string
+        )
+
+        request = f'{settings.BBB_API_URL}/hooks/create?{query_string}&checksum={checksum}'
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(request)
+
+        return response.text
+    
+    async def list_hooks(self, meeting_ID: str | None):
+        query_string = '' if (meeting_ID is None) else f'meetingID={meeting_ID}'
+
+        checksum = self.generate_checksum(
+            call_name='hooks/list',
+            query=query_string
+        )
+
+        request = f'{settings.BBB_API_URL}/hooks/list?{query_string}&checksum={checksum}'
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(request)
+
+        return response.text
+    
+    async def destroy_hook(self, hook_id: str):
+        query_string = f'hookID={hook_id}'
+        checksum = self.generate_checksum(
+            call_name='hooks/destroy',
+            query=query_string
+        )
+
+        request = f'{settings.BBB_API_URL}/hooks/destroy?{query_string}&checksum={checksum}'
+
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(request)
+
+        return response.text
