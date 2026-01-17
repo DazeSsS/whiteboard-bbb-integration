@@ -12,11 +12,14 @@ class Settings(BaseSettings):
     # CORS
     ORIGINS: str
 
+    # App
+    APP_RECORDINGS_PATH: str
+    EVENTS_CALLBACK_URL: str
+
     # Big Blue Button
     BBB_SECRET: str
     BBB_API_URL: str
     BBB_RECORDINGS_PATH: str
-    APP_RECORDINGS_PATH: str
 
     # Whitebooard
     WHITEBOARD_BASE_URL: str

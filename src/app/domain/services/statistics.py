@@ -65,7 +65,7 @@ class StatisticsService:
             else:
                 return None
         
-    async def update_metrics(self, stats: dict):
+    async def update_metrics(self, metrics: dict):
         stats_module = await self.stats_module_repo.get_first_module()
 
         if stats_module is None:
@@ -76,7 +76,7 @@ class StatisticsService:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.put(
                 url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/metrics',
-                json=stats,
+                json=metrics,
                 headers={
                     'X-Module-Token': token
                 }
@@ -102,7 +102,40 @@ class StatisticsService:
                 stats=meeting_stats
             )
 
-        return meeting_stats
+        metrics = await self.get_current_metrics()
+
+        meeting_ID = meeting_stats.get('meetingID')
+        whiteboard_id = meeting_stats.get('whiteboardId')
+        start_time = meeting_stats.get('startTime')
+
+        boards = metrics.get('boards')
+        if boards is None:
+            metrics['boards'] = {
+                whiteboard_id: {
+                    meeting_ID: {
+                        start_time: meeting_stats
+                    }
+                }
+            }
+        else:
+            if whiteboard_id not in boards:
+                boards[whiteboard_id] = {
+                    meeting_ID: {
+                        start_time: meeting_stats
+                    }
+                }
+            else:
+                rooms = boards[whiteboard_id]
+                if meeting_ID not in rooms:
+                    rooms[meeting_ID] = {
+                        start_time: meeting_stats
+                    }
+                else:
+                    rooms[meeting_ID][start_time] = meeting_stats
+
+        await self.update_metrics(metrics=metrics)
+
+        return metrics
 
     async def _get_events_path(self, internal_meeting_id: str) -> str:
         root = Path(settings.APP_RECORDINGS_PATH)
@@ -244,9 +277,20 @@ class StatisticsService:
                 }
             }
 
-        start = (
+        name = meeting_data.get('name')
+        meeting_ID = meeting_data.get('meetingID')
+        whiteboard_id = meeting_data.get('whiteboardId')
+
+        start_time = (
             meeting_data
                 .get('startTime')
+                .isoformat()
+                .replace('000', '')
+                .replace('+00:00', 'Z')
+        )
+        end_time = (
+            meeting_data
+                .get('endTime')
                 .isoformat()
                 .replace('000', '')
                 .replace('+00:00', 'Z')
@@ -257,14 +301,14 @@ class StatisticsService:
         ).split('.')[0]
 
         stats = {
-            start: {
-                'name': meeting_data.get('name'),
-                'meetingID': meeting_data.get('meetingID'),
-                'whiteboardId': meeting_data.get('whiteboardId'),
-                'duration': duration,
-                'users_count': len(grouped_users.keys()),
-                'users': users_info
-            }
+            'name': name,
+            'meetingID': meeting_ID,
+            'whiteboardId': whiteboard_id,
+            'startTime': start_time,
+            'endTime': end_time,
+            'duration': duration,
+            'users_count': len(grouped_users.keys()),
+            'users': users_info
         }
 
         return stats

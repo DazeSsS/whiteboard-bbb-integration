@@ -3,12 +3,14 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.models import stats_module
 from database import get_async_session
 
 from app.data.repositories import MeetingRepository, StatsModuleRepository, UserRepository
-from app.domain.services import MeetingService, StatisticsService, UserService
+from app.domain.services import BBBService, MeetingService, StatisticsService, UserService
 
+
+def get_bbb_service() -> BBBService:
+    return BBBService()
 
 def get_meeting_service(session: Annotated[AsyncSession, Depends(get_async_session)]) -> MeetingService:
     meeting_repo = MeetingRepository(session)

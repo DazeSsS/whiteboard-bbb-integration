@@ -30,8 +30,8 @@ async def get_current_metrics(
 
 @router.put('/stats/module/metrics')
 async def update_metrics(
-    stats: dict,
+    metrics: dict,
     statistics_service: Annotated[StatisticsService, Depends(get_statistics_service)],
 ):
-    response = await statistics_service.update_metrics(stats=stats)
+    response = await statistics_service.update_metrics(metrics=metrics)
     return response

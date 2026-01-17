@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.middleware import BearerTokenMiddleware
 from config import settings
+from app.middleware import BearerTokenMiddleware
 from app.api.exceptions import set_exceptions
 from app.api.routers import api_router
 

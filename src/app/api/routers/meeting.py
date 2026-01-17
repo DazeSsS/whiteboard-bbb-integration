@@ -88,7 +88,7 @@ async def get_meeting_info(
 
 
 @router.post('/events')
-async def get_events(
+async def receive_events(
     request: Request,
     statistics_service: Annotated[StatisticsService, Depends(get_statistics_service)],
 ):
