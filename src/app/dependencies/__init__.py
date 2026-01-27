@@ -4,4 +4,5 @@ from .service_factories import (
     get_meeting_service,
     get_statistics_service,
     get_user_service,
+    get_widget_service
 )

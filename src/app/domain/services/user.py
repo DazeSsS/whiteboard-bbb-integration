@@ -2,8 +2,6 @@ import jwt
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
-
 from app.data.models import User
 from app.data.repositories import UserRepository
 from app.domain.entities import UserCreate, UserData, UserResponse

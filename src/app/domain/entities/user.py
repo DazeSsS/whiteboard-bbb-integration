@@ -1,6 +1,8 @@
 from pydantic import Field
-from .base import BaseSchema, CamelSchema
+
 from app.domain.enums import UserRole
+
+from .base import BaseSchema, CamelSchema
 
 
 class UserCreate(CamelSchema):

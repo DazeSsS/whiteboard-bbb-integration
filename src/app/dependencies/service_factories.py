@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_async_session
 
-from app.data.repositories import MeetingRepository, StatsModuleRepository, UserRepository
-from app.domain.services import BBBService, MeetingService, StatisticsService, UserService
+from app.data.repositories import MeetingRepository, StatsModuleRepository, UserRepository, WidgetRepository
+from app.domain.services import BBBService, MeetingService, StatisticsService, UserService, WidgetService
 
 
 def get_bbb_service() -> BBBService:
@@ -25,3 +25,7 @@ def get_statistics_service(session: Annotated[AsyncSession, Depends(get_async_se
 def get_user_service(session: Annotated[AsyncSession, Depends(get_async_session)]) -> UserService:
     user_repo = UserRepository(session)
     return UserService(session=session, user_repo=user_repo)
+
+def get_widget_service(session: Annotated[AsyncSession, Depends(get_async_session)]) -> WidgetService:
+    widget_repo = WidgetRepository(session)
+    return WidgetService(session=session, widget_repo=widget_repo)
