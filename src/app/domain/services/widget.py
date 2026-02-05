@@ -1,3 +1,4 @@
+import logging
 import httpx
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,9 @@ from config import settings
 from app.data.models import Widget
 from app.data.repositories import WidgetRepository
 from app.domain.entities import ConfigUpdate, UserData, WidgetCreate, WidgetResponse
+
+
+logger = logging.getLogger(__name__)
 
 
 class WidgetService:
@@ -51,7 +55,10 @@ class WidgetService:
                     )
                     response.raise_for_status()
                     updated_widgets.append(widget_id)
-                except:
-                    pass
+                except Exception:
+                    logger.exception(
+                        'Error while updating widget with ID %r',
+                        widget_id
+                    )
 
         return updated_widgets

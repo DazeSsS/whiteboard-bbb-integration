@@ -1,3 +1,4 @@
+import logging
 import httpx
 import asyncio
 import xmltodict
@@ -12,6 +13,9 @@ from config import settings
 from app.data.models import StatsModule
 from app.data.repositories import MeetingRepository, StatsModuleRepository
 from app.domain.exceptions import NotFoundException
+
+
+logger = logging.getLogger(__name__)
 
 
 class StatisticsService:
@@ -48,27 +52,30 @@ class StatisticsService:
         stats_module = await self.stats_module_repo.get_first_module()
 
         if stats_module is None:
+            logger.warning('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
         
         token = stats_module.token
 
         async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(
-                url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/metrics',
-                headers={
-                    'X-Module-Token': token
-                }
-            )
+            try:
+                response = await client.get(
+                    url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/metrics',
+                    headers={
+                        'X-Module-Token': token
+                    }
+                )
 
-            if response.status_code == 200:
+                response.raise_for_status()
                 return response.json()
-            else:
-                return None
+            except Exception:
+                logger.exception('Error while getting current metrics')
         
     async def update_metrics(self, metrics: dict):
         stats_module = await self.stats_module_repo.get_first_module()
 
         if stats_module is None:
+            logger.warning('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
         
         token = stats_module.token
@@ -85,9 +92,21 @@ class StatisticsService:
             return response.json()
 
     async def process_stats(self, internal_meeting_id: str) -> dict:
+        stats_module = await self.stats_module_repo.get_first_module()
+
+        if stats_module is None:
+            logger.warning('Stats Module does not exist')
+            raise NotFoundException(entity_name='StatsModule')
+
         events_path = await self._get_events_path(
             internal_meeting_id=internal_meeting_id
         )
+        if events_path is None:
+            logger.warning(
+                'Events file for meeting %r does not exist',
+                internal_meeting_id,
+            )
+            return
 
         with open(events_path, 'r', encoding='utf-8') as file:
             events_xml = file.read()
@@ -141,17 +160,17 @@ class StatisticsService:
         root = Path(settings.APP_RECORDINGS_PATH)
 
         events_path = None
-        while events_path is None:
+        for _ in range(3):
             target_dir = list(root.rglob(internal_meeting_id))
             if target_dir:
                 events_file = list(target_dir[0].rglob('events.xml'))
                 if events_file:
                     events_path = events_file[0]
                 else:
-                    print('Ожидание генерации файла с эвентами')
+                    logger.info('Ожидание генерации файла с эвентами')
                     await asyncio.sleep(5)
             else:
-                print('Ожидание генерации папки с эвентами')
+                logger.info('Ожидание генерации папки с эвентами')
                 await asyncio.sleep(5)
 
         return events_path

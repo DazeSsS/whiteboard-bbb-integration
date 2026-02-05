@@ -1,4 +1,5 @@
 import jwt
+import logging
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +7,9 @@ from app.data.models import User
 from app.data.repositories import UserRepository
 from app.domain.entities import UserCreate, UserData, UserResponse
 from app.domain.exceptions import AlreadyExistsException, NotFoundException
+
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
@@ -31,6 +35,7 @@ class UserService:
         user = await self.user_repo.get_by_id(id=user_id)
 
         if user is None:
+            logger.warning('User with ID %s does not exist', user_id)
             raise NotFoundException(entity_name='User')
 
         return user.token
@@ -39,6 +44,7 @@ class UserService:
         user = await self.user_repo.get_by_id(id=user_id)
 
         if user is None:
+            logger.warning('User with ID %s does not exist', user_id)
             raise NotFoundException(entity_name='User')
 
         return UserResponse.model_validate(user)
@@ -57,6 +63,7 @@ class UserService:
                 new_user = UserResponse.model_validate(user_obj)
             return new_user
         except IntegrityError:
+            logger.warning('User already exists')
             raise AlreadyExistsException(entity_name='User')
         
     async def update_user_name(self, user_id: int, name: str) -> UserResponse:
@@ -64,6 +71,7 @@ class UserService:
             updated_user = await self.user_repo.update_name(user_id=user_id, name=name)
 
             if updated_user is None:
+                logger.warning('User with ID %s does not exist', user_id)
                 raise NotFoundException(entity_name='User')
             
             return UserResponse.model_validate(updated_user)

@@ -1,5 +1,6 @@
 import httpx
 import hashlib
+import logging
 from xml.etree import ElementTree
 
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +12,9 @@ from app.data.repositories import MeetingRepository, UserRepository
 from app.domain.entities import JoinParams, MeetingCreate, MeetingResponse, UserData
 from app.domain.enums import ReturnCode
 from app.domain.exceptions import CodeFailed, NotFoundException
+
+
+logger = logging.getLogger(__name__)
 
 
 class MeetingService:
@@ -58,6 +62,11 @@ class MeetingService:
             
             detail = f'{message_key}: {message}'
 
+            logger.warning(
+                'BBB error while creating meeting: %s',
+                message
+            )
+
             raise CodeFailed(detail=detail)
 
         internal_id = root.find('internalMeetingID').text
@@ -70,8 +79,10 @@ class MeetingService:
                     whiteboard_id=meeting.whiteboard_id
                 )
                 await self.meeting_repo.add(new_meeting_obj)
-        except IntegrityError as exc:
-            pass
+        except IntegrityError:
+            logger.warning('Meeting already exists')
+        except Exception:
+            logger.exception('Unknown error while creating meeting')
 
         join_params = JoinParams(meeting_ID=meeting.meeting_ID)
         request = await self.get_join_link(join_params=join_params, user_data=user_data)
@@ -81,10 +92,12 @@ class MeetingService:
         async with self.session.begin():
             user = await self.user_repo.get_by_id(id=user_data.id)
             if user is None:
+                logger.warning('User with ID %s does not exist', user_data.id)
                 raise NotFoundException(entity_name='User')
             
             meeting = await self.meeting_repo.get_last_by_meeting_ID(meeting_ID=join_params.meeting_ID)
-            if user is None:
+            if meeting is None:
+                logger.warning('Meeting with ID %r does not exist', join_params.meeting_ID)
                 raise NotFoundException(entity_name='Meeting')
         
             user.token = user_data.token
@@ -153,6 +166,11 @@ class MeetingService:
             
             detail = f'{message_key}: {message}'
 
+            logger.warning(
+                'BBB error while getting meetings: %s',
+                message
+            )
+
             raise CodeFailed(detail=detail)
 
         meetings_elem = root.find('meetings')
@@ -167,10 +185,12 @@ class MeetingService:
 
             metadata = meeting_elem.find('metadata')
             whiteboard_elem = metadata.find('whiteboard')
-            if whiteboard_elem is not None:
-                whiteboard = int(whiteboard_elem.text)
+            if whiteboard_elem is None:
+                continue
 
-            if is_active and (whiteboard == whiteboard_id):
+            whiteboard = int(whiteboard_elem.text)
+
+            if is_active and whiteboard == whiteboard_id:
                 active_meeting = MeetingResponse(
                     name=meeting_name,
                     meeting_ID=meeting_ID
