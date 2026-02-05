@@ -86,8 +86,8 @@ variable "whiteboard_base_url" {
 
 
 # API settings
-variable "api_base_url" {
-  description = "Адрес API"
+variable "api_prefix" {
+  description = "Путь к API"
   type        = string
-  default     = "http://example.com"
+  default     = "/api"
 }

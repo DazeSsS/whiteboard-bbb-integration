@@ -56,7 +56,7 @@ write_files:
           const userId = sessionStorage.getItem('extId');
           
           if (meetingId) {
-            fetch(`${api_base_url}/meetings/whiteboard?internalMeetingId=$${meetingId}`)
+            fetch(`https://${domain}${api_prefix}/meetings/whiteboard?internalMeetingId=$${meetingId}`)
               .then(response => response.json())
               .then(data => {
                 if (data) {
@@ -69,7 +69,7 @@ write_files:
           }
 
           if (userId) {
-            fetch(`${api_base_url}/users/token?userId=$${userId}`)
+            fetch(`https://${domain}${api_prefix}/users/token?userId=$${userId}`)
               .then(response => response.json())
               .then(data => {
                 if (data) {
@@ -108,6 +108,16 @@ write_files:
       };
 
       export default WhiteboardContainer;
+  - path: /tmp/backend-proxy.nginx
+    permissions: '644'
+    content: |
+      location ${api_prefix}/ {
+              proxy_pass http://localhost:8000/api/v1/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+      }
 
 runcmd:
   - /tmp/setup-bbb.sh
@@ -122,3 +132,6 @@ runcmd:
     cd /home/${username}
     git clone https://github.com/DazeSsS/whiteboard-bbb-integration.git .
     cp .env.example .env
+  - |
+    cp /tmp/backend-proxy.nginx /usr/share/bigbluebutton/nginx/
+    nginx -s reload

@@ -45,7 +45,7 @@ resource "yandex_compute_instance" "bbb-vm" {
       email               = var.email
       domain              = var.domain
       whiteboard_base_url = var.whiteboard_base_url
-      api_base_url        = var.api_base_url
+      api_prefix          = var.api_prefix
     })
   }
 }
