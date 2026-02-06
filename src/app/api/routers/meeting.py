@@ -1,22 +1,27 @@
 import json
 import logging
-from urllib.parse import parse_qs
 from typing import Annotated
+from urllib.parse import parse_qs
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from app.dependencies import get_current_user_data, get_meeting_service, get_statistics_service
+from app.dependencies import (
+    get_current_user_data,
+    get_meeting_service,
+    get_statistics_service,
+)
+from app.domain.entities import (
+    JoinParams,
+    MeetingCreate,
+    MeetingResponse,
+    UserData,
+)
 from app.domain.services import MeetingService, StatisticsService
-from app.domain.entities import JoinParams, MeetingCreate, MeetingResponse, UserData
-
 
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(
-    prefix='/meetings',
-    tags=['Meetings']
-)
+router = APIRouter(prefix='/meetings', tags=['Meetings'])
 
 
 @router.get('/create')
@@ -28,7 +33,7 @@ async def create_meeting(
     logger.info('Создание встречи с ID %r', meeting.meeting_ID)
     response = await meeting_service.create_meeting(
         meeting=meeting,
-        user_data=user_data
+        user_data=user_data,
     )
     logger.info('Встреча с ID %r создана', meeting.meeting_ID)
     return response
@@ -47,7 +52,7 @@ async def get_join_link(
     )
     response = await meeting_service.get_join_link(
         join_params=join_params,
-        user_data=user_data
+        user_data=user_data,
     )
     logger.info(
         'Ссылка для подключения к встрече c ID %r получена | user_id = %s',
@@ -74,7 +79,9 @@ async def get_active_meeting(
     meeting_service: Annotated[MeetingService, Depends(get_meeting_service)],
 ) -> MeetingResponse | None:
     logger.info('Получение активных встреч для вайтборда с ID %s', whiteboard_id)
-    response = await meeting_service.get_active_meeting(whiteboard_id=whiteboard_id)
+    response = await meeting_service.get_active_meeting(
+        whiteboard_id=whiteboard_id,
+    )
     logger.info('Активные встречи для вайтборда с ID %s получены', whiteboard_id)
     return response
 
@@ -85,7 +92,9 @@ async def get_whiteboard_id(
     meeting_service: Annotated[MeetingService, Depends(get_meeting_service)],
 ) -> int | None:
     logger.info('Получение ID вайтборда | internal_ID = %r', internal_meeting_id)
-    whiteboard_id = await meeting_service.get_whiteboard_id(internal_meeting_id=internal_meeting_id)
+    whiteboard_id = await meeting_service.get_whiteboard_id(
+        internal_meeting_id=internal_meeting_id,
+    )
     logger.info('ID вайтборда получен | internal_ID = %r', internal_meeting_id)
     return whiteboard_id
 
@@ -117,21 +126,29 @@ async def receive_events(
     request: Request,
     statistics_service: Annotated[StatisticsService, Depends(get_statistics_service)],
 ):
-
     raw_body = await request.body()
     decoded_body = raw_body.decode()
 
     raw_event = parse_qs(decoded_body)['event'][0]
     event = json.loads(raw_event)[0]
-    
+
     event_type = event['data']['id']
-    internal_meeting_id = event['data']['attributes']['meeting']['internal-meeting-id']
+    meeting = event['data']['attributes']['meeting']
+    internal_meeting_id = meeting['internal-meeting-id']
 
     logger.info('Получение информации об эвенте %r', event_type)
 
     if event_type != 'meeting-ended':
         return
-    
-    logger.info('Сбор статистики встречи | internal_ID = %r', internal_meeting_id)
-    await statistics_service.process_stats(internal_meeting_id=internal_meeting_id)
-    logger.info('Сбор статистики встречи окончен | internal_ID = %r', internal_meeting_id)
+
+    logger.info(
+        'Сбор статистики встречи | internal_ID = %r',
+        internal_meeting_id,
+    )
+    await statistics_service.process_stats(
+        internal_meeting_id=internal_meeting_id,
+    )
+    logger.info(
+        'Сбор статистики встречи окончен | internal_ID = %r',
+        internal_meeting_id,
+    )

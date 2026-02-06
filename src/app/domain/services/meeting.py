@@ -1,18 +1,22 @@
-import httpx
 import hashlib
 import logging
 from xml.etree import ElementTree
 
+import httpx
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from app.data.models import Meeting
 from app.data.repositories import MeetingRepository, UserRepository
-from app.domain.entities import JoinParams, MeetingCreate, MeetingResponse, UserData
+from app.domain.entities import (
+    JoinParams,
+    MeetingCreate,
+    MeetingResponse,
+    UserData,
+)
 from app.domain.enums import ReturnCode
 from app.domain.exceptions import CodeFailed, NotFoundException
-
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,30 +26,34 @@ class MeetingService:
         self,
         session: AsyncSession,
         meeting_repo: MeetingRepository,
-        user_repo: UserRepository
+        user_repo: UserRepository,
     ):
         self.session = session
         self.meeting_repo = meeting_repo
         self.user_repo = user_repo
 
     @staticmethod
-    def generate_checksum(call_name: str, query: str) -> str:
-        string = (
-            call_name +
-            query +
-            settings.BBB_SECRET
-        )
+    def generate_checksum(
+        call_name: str,
+        query: str,
+    ) -> str:
+        string = call_name + query + settings.BBB_SECRET
+        # ruff: noqa: S324
         result = hashlib.sha1(string.encode()).hexdigest()
         return result
 
-    async def create_meeting(self, meeting: MeetingCreate, user_data: UserData):
+    async def create_meeting(
+        self,
+        meeting: MeetingCreate,
+        user_data: UserData,
+    ):
         meeting.record = 'true'
         meeting.meta_whiteboard = meeting.whiteboard_id
         query_string = meeting.to_query_string()
 
         checksum = self.generate_checksum(
             call_name='create',
-            query=query_string
+            query=query_string,
         )
 
         request = f'{settings.BBB_API_URL}/create?{query_string}&checksum={checksum}'
@@ -53,19 +61,17 @@ class MeetingService:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(request)
 
+        # ruff: noqa: S314
         root = ElementTree.fromstring(response.text)
         returncode = root.find('returncode').text
-        
+
         if returncode == ReturnCode.FAILED:
             message_key = root.find('messageKey').text
             message = root.find('message').text
-            
+
             detail = f'{message_key}: {message}'
 
-            logger.warning(
-                'BBB error while creating meeting: %s',
-                message
-            )
+            logger.warning('BBB error while creating meeting: %s', message)
 
             raise CodeFailed(detail=detail)
 
@@ -76,7 +82,7 @@ class MeetingService:
                     id=internal_id,
                     text_id=meeting.meeting_ID,
                     name=meeting.name,
-                    whiteboard_id=meeting.whiteboard_id
+                    whiteboard_id=meeting.whiteboard_id,
                 )
                 await self.meeting_repo.add(new_meeting_obj)
         except IntegrityError:
@@ -85,71 +91,91 @@ class MeetingService:
             logger.exception('Unknown error while creating meeting')
 
         join_params = JoinParams(meeting_ID=meeting.meeting_ID)
-        request = await self.get_join_link(join_params=join_params, user_data=user_data)
+        request = await self.get_join_link(
+            join_params=join_params,
+            user_data=user_data,
+        )
         return request
 
-    async def get_join_link(self, join_params: JoinParams, user_data: UserData):
+    async def get_join_link(
+        self,
+        join_params: JoinParams,
+        user_data: UserData,
+    ):
         async with self.session.begin():
             user = await self.user_repo.get_by_id(id=user_data.id)
             if user is None:
                 logger.warning('User with ID %s does not exist', user_data.id)
                 raise NotFoundException(entity_name='User')
-            
-            meeting = await self.meeting_repo.get_last_by_meeting_ID(meeting_ID=join_params.meeting_ID)
+
+            meeting = await self.meeting_repo.get_last_by_meeting_ID(
+                meeting_ID=join_params.meeting_ID,
+            )
             if meeting is None:
-                logger.warning('Meeting with ID %r does not exist', join_params.meeting_ID)
+                logger.warning(
+                    'Meeting with ID %r does not exist',
+                    join_params.meeting_ID,
+                )
                 raise NotFoundException(entity_name='Meeting')
-        
+
             user.token = user_data.token
-        
+
             join_params.userID = user.id
             join_params.fullName = user.name
             join_params.role = user.role
             join_params.redirect = 'true'
-            join_params.logoutURL = f'{settings.WHITEBOARD_BASE_URL}{settings.WHITEBOARD_URL_PATH}/{meeting.whiteboard_id}'
+            join_params.logoutURL = (
+                f'{settings.WHITEBOARD_BASE_URL}{settings.WHITEBOARD_URL_PATH}'
+                f'/{meeting.whiteboard_id}'
+            )
 
         query_string = join_params.to_query_string()
 
-        checksum = self.generate_checksum(
-            call_name='join',
-            query=query_string
-        )
+        checksum = self.generate_checksum(call_name='join', query=query_string)
 
         request = f'{settings.BBB_API_URL}/join?{query_string}&checksum={checksum}'
 
         return request
-    
-    async def end_meeting(self, meeting_ID: str):
+
+    async def end_meeting(
+        self,
+        meeting_ID: str,
+    ):
         query_string = f'meetingID={meeting_ID}'
-        checksum = self.generate_checksum(
-            call_name='end',
-            query=query_string
-        )
+        checksum = self.generate_checksum(call_name='end', query=query_string)
 
         request = f'{settings.BBB_API_URL}/end?{query_string}&checksum={checksum}'
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             await client.get(request)
 
-    async def get_meeting_info(self, meeting_ID: str):
+    async def get_meeting_info(
+        self,
+        meeting_ID: str,
+    ):
         query_string = f'meetingID={meeting_ID}'
         checksum = self.generate_checksum(
             call_name='getMeetingInfo',
-            query=query_string
+            query=query_string,
         )
 
-        request = f'{settings.BBB_API_URL}/getMeetingInfo?{query_string}&checksum={checksum}'
+        request = (
+            f'{settings.BBB_API_URL}/getMeetingInfo?{query_string}&checksum={checksum}'
+        )
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(request)
 
         return response.text
-    
-    async def get_active_meeting(self, whiteboard_id: int) -> MeetingResponse | None:
-        query_string = f''
+
+    async def get_active_meeting(
+        self,
+        whiteboard_id: int,
+    ) -> MeetingResponse | None:
+        query_string = ''
         checksum = self.generate_checksum(
             call_name='getMeetings',
-            query=query_string
+            query=query_string,
         )
 
         request = f'{settings.BBB_API_URL}/getMeetings?checksum={checksum}'
@@ -157,19 +183,17 @@ class MeetingService:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(request)
 
+        # ruff: noqa: S314
         root = ElementTree.fromstring(response.text)
         returncode = root.find('returncode').text
-        
+
         if returncode == ReturnCode.FAILED:
             message_key = root.find('messageKey').text
             message = root.find('message').text
-            
+
             detail = f'{message_key}: {message}'
 
-            logger.warning(
-                'BBB error while getting meetings: %s',
-                message
-            )
+            logger.warning('BBB error while getting meetings: %s', message)
 
             raise CodeFailed(detail=detail)
 
@@ -193,28 +217,38 @@ class MeetingService:
             if is_active and whiteboard == whiteboard_id:
                 active_meeting = MeetingResponse(
                     name=meeting_name,
-                    meeting_ID=meeting_ID
+                    meeting_ID=meeting_ID,
                 )
                 break
 
         return active_meeting
 
-    async def get_recordings(self, meeting_ID: str | None):
+    async def get_recordings(
+        self,
+        meeting_ID: str | None,
+    ):
         query_string = f'meetingID={meeting_ID}'
         checksum = self.generate_checksum(
             call_name='getRecordings',
-            query=query_string
+            query=query_string,
         )
 
-        request = f'{settings.BBB_API_URL}/getRecordings?{query_string}&checksum={checksum}'
+        request = (
+            f'{settings.BBB_API_URL}/getRecordings?{query_string}&checksum={checksum}'
+        )
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.get(request)
 
         return response.text
 
-    async def get_whiteboard_id(self, internal_meeting_id: str) -> int | None:
-        whiteboard_id = await self.meeting_repo.get_whiteboard_id_by_meeting_internal_id(
-            internal_id=internal_meeting_id
+    async def get_whiteboard_id(
+        self,
+        internal_meeting_id: str,
+    ) -> int | None:
+        whiteboard_id = (
+            await self.meeting_repo.get_whiteboard_id_by_meeting_internal_id(
+                internal_id=internal_meeting_id,
+            )
         )
         return whiteboard_id

@@ -1,4 +1,5 @@
 from enum import StrEnum
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,11 +11,11 @@ class Environment(StrEnum):
 class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: Environment = Environment.DEV
-    
+
     # PostgreSQL
     POSTGRES_PASSWORD: str
     POSTGRES_USER: str
-    POSTGRES_DB: str 
+    POSTGRES_DB: str
     POSTGRES_HOST: str
     POSTGRES_PORT: str
 

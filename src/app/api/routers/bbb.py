@@ -6,14 +6,10 @@ from fastapi import APIRouter, Depends, Query
 from app.dependencies import get_bbb_service
 from app.domain.services import BBBService
 
-
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(
-    prefix='/bbb',
-    tags=['BBB']
-)
+router = APIRouter(prefix='/bbb', tags=['BBB'])
 
 
 @router.get('/hooks/create')

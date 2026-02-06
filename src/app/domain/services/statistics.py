@@ -1,19 +1,17 @@
-import logging
-import httpx
 import asyncio
+import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+
+import httpx
 import xmltodict
 from lxml import html
-from pathlib import Path
-from datetime import datetime, timedelta
-
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from app.data.models import StatsModule
 from app.data.repositories import MeetingRepository, StatsModuleRepository
 from app.domain.exceptions import NotFoundException
-
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +21,21 @@ class StatisticsService:
         self,
         session: AsyncSession,
         meeting_repo: MeetingRepository,
-        stats_module_repo: StatsModuleRepository
+        stats_module_repo: StatsModuleRepository,
     ):
         self.session = session
         self.meeting_repo = meeting_repo
         self.stats_module_repo = stats_module_repo
 
-    async def create_stats_module(self, name: str):
+    async def create_stats_module(
+        self,
+        name: str,
+    ):
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.post(
-                url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/create',
-                json={'moduleName': name}
+                url=f'{settings.WHITEBOARD_BASE_URL}/api/stats/module/create',
+                json={'moduleName': name},
             )
-
             data = response.json()
 
         async with self.session.begin():
@@ -45,61 +45,60 @@ class StatisticsService:
                 token=data.get('token'),
             )
             self.stats_module_repo.add(new_module)
-
             return new_module
 
-    async def get_current_metrics(self):
+    async def get_current_metrics(
+        self,
+    ):
         stats_module = await self.stats_module_repo.get_first_module()
-
         if stats_module is None:
             logger.warning('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
-        
+
         token = stats_module.token
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             try:
                 response = await client.get(
-                    url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/metrics',
-                    headers={
-                        'X-Module-Token': token
-                    }
+                    url=f'{settings.WHITEBOARD_BASE_URL}/api/stats/module/metrics',
+                    headers={'X-Module-Token': token},
                 )
-
                 response.raise_for_status()
                 return response.json()
             except Exception:
                 logger.exception('Error while getting current metrics')
-        
-    async def update_metrics(self, metrics: dict):
-        stats_module = await self.stats_module_repo.get_first_module()
 
+    async def update_metrics(
+        self,
+        metrics: dict,
+    ):
+        stats_module = await self.stats_module_repo.get_first_module()
         if stats_module is None:
             logger.warning('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
-        
+
         token = stats_module.token
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.put(
-                url=settings.WHITEBOARD_BASE_URL + '/api/stats/module/metrics',
+                url=f'{settings.WHITEBOARD_BASE_URL}/api/stats/module/metrics',
                 json=metrics,
-                headers={
-                    'X-Module-Token': token
-                }
+                headers={'X-Module-Token': token},
             )
 
             return response.json()
 
-    async def process_stats(self, internal_meeting_id: str) -> dict:
+    async def process_stats(
+        self,
+        internal_meeting_id: str,
+    ) -> dict:
         stats_module = await self.stats_module_repo.get_first_module()
-
         if stats_module is None:
             logger.warning('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
 
         events_path = await self._get_events_path(
-            internal_meeting_id=internal_meeting_id
+            internal_meeting_id=internal_meeting_id,
         )
         if events_path is None:
             logger.warning(
@@ -108,7 +107,7 @@ class StatisticsService:
             )
             return
 
-        with open(events_path, 'r', encoding='utf-8') as file:
+        with open(events_path, encoding='utf-8') as file:
             events_xml = file.read()
 
         events_dict = xmltodict.parse(events_xml)
@@ -118,7 +117,7 @@ class StatisticsService:
         async with self.session.begin():
             await self.meeting_repo.update_meeting_stats(
                 internal_id=internal_meeting_id,
-                stats=meeting_stats
+                stats=meeting_stats,
             )
 
         metrics = await self.get_current_metrics()
@@ -130,25 +129,15 @@ class StatisticsService:
         boards = metrics.get('boards')
         if boards is None:
             metrics['boards'] = {
-                whiteboard_id: {
-                    meeting_ID: {
-                        start_time: meeting_stats
-                    }
-                }
+                whiteboard_id: {meeting_ID: {start_time: meeting_stats}}
             }
         else:
             if whiteboard_id not in boards:
-                boards[whiteboard_id] = {
-                    meeting_ID: {
-                        start_time: meeting_stats
-                    }
-                }
+                boards[whiteboard_id] = {meeting_ID: {start_time: meeting_stats}}
             else:
                 rooms = boards[whiteboard_id]
                 if meeting_ID not in rooms:
-                    rooms[meeting_ID] = {
-                        start_time: meeting_stats
-                    }
+                    rooms[meeting_ID] = {start_time: meeting_stats}
                 else:
                     rooms[meeting_ID][start_time] = meeting_stats
 
@@ -156,7 +145,10 @@ class StatisticsService:
 
         return metrics
 
-    async def _get_events_path(self, internal_meeting_id: str) -> str:
+    async def _get_events_path(
+        self,
+        internal_meeting_id: str,
+    ) -> str:
         root = Path(settings.APP_RECORDINGS_PATH)
 
         events_path = None
@@ -175,11 +167,14 @@ class StatisticsService:
 
         return events_path
 
-    async def _parse_events(self, events_dict: dict) -> dict:
+    async def _parse_events(
+        self,
+        events_dict: dict,
+    ) -> dict:
         recording = events_dict['recording']
 
         meeting_data = recording['meeting']
-        metadata =  recording['metadata']
+        metadata = recording['metadata']
         events = recording['event']
 
         self.meeting = {
@@ -196,17 +191,44 @@ class StatisticsService:
             event_type = (event['@eventname'], event['@module'])
 
             handlers = {
-                ('MeetingConfigurationEvent', 'CONFIG'): self._handle_configuration_event,
-                ('ParticipantJoinEvent', 'PARTICIPANT'): self._handle_participant_join_meeting_event,
-                ('ParticipantJoinedEvent', 'VOICE'): self._handle_participant_join_voice_event,
-                ('ParticipantMutedEvent', 'VOICE'): self._handle_participant_muted_event,
-                ('ParticipantTalkingEvent', 'VOICE'): self._handle_participant_talking_event,
-                ('ParticipantLeftEvent', 'PARTICIPANT'): self._handle_participant_left_meeting_event,
-                ('ParticipantLeftEvent', 'VOICE'): self._handle_participant_left_voice_event,
-                ('PublicChatEvent', 'CHAT'): self._handle_public_chat_event,
-                ('EndAndKickAllEvent', 'PARTICIPANT'): self._handle_end_and_kick_all_event,
+                (
+                    'MeetingConfigurationEvent',
+                    'CONFIG',
+                ): self._handle_configuration_event,
+                (
+                    'ParticipantJoinEvent',
+                    'PARTICIPANT',
+                ): self._handle_participant_join_meeting_event,
+                (
+                    'ParticipantJoinedEvent',
+                    'VOICE',
+                ): self._handle_participant_join_voice_event,
+                (
+                    'ParticipantMutedEvent',
+                    'VOICE',
+                ): self._handle_participant_muted_event,
+                (
+                    'ParticipantTalkingEvent',
+                    'VOICE',
+                ): self._handle_participant_talking_event,
+                (
+                    'ParticipantLeftEvent',
+                    'PARTICIPANT',
+                ): self._handle_participant_left_meeting_event,
+                (
+                    'ParticipantLeftEvent',
+                    'VOICE',
+                ): self._handle_participant_left_voice_event,
+                (
+                    'PublicChatEvent',
+                    'CHAT',
+                ): self._handle_public_chat_event,
+                (
+                    'EndAndKickAllEvent',
+                    'PARTICIPANT',
+                ): self._handle_end_and_kick_all_event,
             }
-            
+
             handler = handlers.get(event_type)
             if handler:
                 await handler(event)
@@ -214,7 +236,7 @@ class StatisticsService:
         grouped_users = {}
         for user_id in self.users:
             user = self.users.get(user_id)
-            
+
             extId = user.get('extId')
             if grouped_users.get(extId):
                 grouped_users[extId].append(user.copy())
@@ -224,8 +246,11 @@ class StatisticsService:
         self.meeting['users'] = grouped_users
 
         return self.meeting
-    
-    async def _get_meeting_stats(self, meeting_data: dict):
+
+    async def _get_meeting_stats(
+        self,
+        meeting_data: dict,
+    ):
         grouped_users = meeting_data.get('users')
 
         users_info = {}
@@ -249,7 +274,7 @@ class StatisticsService:
                 if talking:
                     last_update = None
                     for update in talking:
-                        if last_update == None:
+                        if last_update is None:
                             last_update = update
                             continue
 
@@ -261,19 +286,19 @@ class StatisticsService:
                             user_talking += current_time - last_time
 
                         last_update = update
-                
+
                 muted = session.get('muted')
                 if muted:
                     last_update = None
                     for update in muted:
-                        if last_update == None:
+                        if last_update is None:
                             last_update = update
                             if len(muted) != 1:
                                 continue
 
                         last_value = last_update.get('value')
                         last_time = last_update.get('date')
-                        
+
                         current_value = update.get('value')
                         current_time = update.get('date')
 
@@ -285,7 +310,7 @@ class StatisticsService:
                             user_muted += current_time - last_time
 
                         last_update = update
-                
+
             users_info[user_id] = {
                 'name': user_names,
                 'role': user_role,
@@ -293,7 +318,7 @@ class StatisticsService:
                     'talking': str(user_talking).split('.')[0],
                     'muted': str(user_muted).split('.')[0],
                     'unmuted': str(user_unmuted).split('.')[0],
-                }
+                },
             }
 
         name = meeting_data.get('name')
@@ -301,20 +326,18 @@ class StatisticsService:
         whiteboard_id = meeting_data.get('whiteboardId')
 
         start_time = (
-            meeting_data
-                .get('startTime')
-                .isoformat()
-                .replace('000', '')
-                .replace('+00:00', 'Z')
+            meeting_data.get('startTime')
+            .isoformat()
+            .replace('000', '')
+            .replace('+00:00', 'Z')
         )
         end_time = (
-            meeting_data
-                .get('endTime')
-                .isoformat()
-                .replace('000', '')
-                .replace('+00:00', 'Z')
+            meeting_data.get('endTime')
+            .isoformat()
+            .replace('000', '')
+            .replace('+00:00', 'Z')
         )
-        
+
         duration = str(
             meeting_data.get('endTime') - meeting_data.get('startTime')
         ).split('.')[0]
@@ -327,25 +350,34 @@ class StatisticsService:
             'endTime': end_time,
             'duration': duration,
             'users_count': len(grouped_users.keys()),
-            'users': users_info
+            'users': users_info,
         }
 
         return stats
 
-    async def _handle_configuration_event(self, event: dict):
+    async def _handle_configuration_event(
+        self,
+        event: dict,
+    ):
         self.meeting['startTime'] = datetime.fromisoformat(event['date'])
 
-    async def _handle_participant_join_meeting_event(self, event: dict):
+    async def _handle_participant_join_meeting_event(
+        self,
+        event: dict,
+    ):
         user = {
             'extId': event['externalUserId'],
             'intId': event['userId'],
             'name': event['name'],
             'role': event['role'],
-            'joined': datetime.fromisoformat(event['date'])
+            'joined': datetime.fromisoformat(event['date']),
         }
         self.users[event['userId']] = user
 
-    async def _handle_participant_join_voice_event(self, event: dict):
+    async def _handle_participant_join_voice_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['participant'])
 
         muted = user.get('muted')
@@ -354,7 +386,7 @@ class StatisticsService:
                 user['muted'].append(
                     {
                         'date': datetime.fromisoformat(event['date']),
-                        'value': event['muted']
+                        'value': event['muted'],
                     }
                 )
         else:
@@ -363,13 +395,16 @@ class StatisticsService:
                     'muted': [
                         {
                             'date': datetime.fromisoformat(event['date']),
-                            'value': event['muted']
+                            'value': event['muted'],
                         }
                     ]
                 }
             )
 
-    async def _handle_participant_muted_event(self, event: dict):
+    async def _handle_participant_muted_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['participant'])
 
         muted = user.get('muted')
@@ -378,7 +413,7 @@ class StatisticsService:
                 user['muted'].append(
                     {
                         'date': datetime.fromisoformat(event['date']),
-                        'value': event['muted']
+                        'value': event['muted'],
                     }
                 )
         else:
@@ -387,13 +422,16 @@ class StatisticsService:
                     'muted': [
                         {
                             'date': datetime.fromisoformat(event['date']),
-                            'value': event['muted']
+                            'value': event['muted'],
                         }
                     ]
                 }
             )
 
-    async def _handle_participant_talking_event(self, event: dict):
+    async def _handle_participant_talking_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['participant'])
 
         talking = user.get('talking')
@@ -402,7 +440,7 @@ class StatisticsService:
                 user['talking'].append(
                     {
                         'date': datetime.fromisoformat(event['date']),
-                        'value': event['talking']
+                        'value': event['talking'],
                     }
                 )
         else:
@@ -411,22 +449,23 @@ class StatisticsService:
                     'talking': [
                         {
                             'date': datetime.fromisoformat(event['date']),
-                            'value': event['talking']
+                            'value': event['talking'],
                         }
                     ]
                 }
             )
 
-    async def _handle_participant_left_meeting_event(self, event: dict):
+    async def _handle_participant_left_meeting_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['userId'])
+        user.update({'left': datetime.fromisoformat(event['date'])})
 
-        user.update(
-            {
-                'left': datetime.fromisoformat(event['date'])
-            }
-        )
-
-    async def _handle_participant_left_voice_event(self, event: dict):
+    async def _handle_participant_left_voice_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['participant'])
 
         muted = user.get('muted')
@@ -434,7 +473,7 @@ class StatisticsService:
             user['muted'].append(
                 {
                     'date': datetime.fromisoformat(event['date']),
-                    'value': 'true'
+                    'value': 'true',
                 }
             )
 
@@ -444,24 +483,26 @@ class StatisticsService:
                 user['talking'].append(
                     {
                         'date': datetime.fromisoformat(event['date']),
-                        'value': 'false'
+                        'value': 'false',
                     }
                 )
 
-    async def _handle_public_chat_event(self, event: dict):
+    async def _handle_public_chat_event(
+        self,
+        event: dict,
+    ):
         user = self.users.get(event['senderId'])
 
         message = html.fromstring(event['message']).text_content()
         if user.get('messages'):
             user['messages'].append(message)
         else:
-            user.update(
-                {
-                    'messages': [message]
-                }
-            )
+            user.update({'messages': [message]})
 
-    async def _handle_end_and_kick_all_event(self, event: dict):
+    async def _handle_end_and_kick_all_event(
+        self,
+        event: dict,
+    ):
         self.meeting['endTime'] = datetime.fromisoformat(event['date'])
 
         for user_id in self.users:
@@ -469,18 +510,14 @@ class StatisticsService:
             left = user.get('left')
 
             if not left:
-                user.update(
-                    {
-                        'left': datetime.fromisoformat(event['date'])
-                    }
-                )
-    
+                user.update({'left': datetime.fromisoformat(event['date'])})
+
                 muted = user.get('muted')
                 if muted:
                     user['muted'].append(
                         {
                             'date': datetime.fromisoformat(event['date']),
-                            'value': 'true'
+                            'value': 'true',
                         }
                     )
 
@@ -490,6 +527,6 @@ class StatisticsService:
                         user['talking'].append(
                             {
                                 'date': datetime.fromisoformat(event['date']),
-                                'value': 'false'
+                                'value': 'false',
                             }
                         )

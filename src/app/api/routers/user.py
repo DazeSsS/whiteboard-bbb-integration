@@ -1,20 +1,16 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from app.dependencies import get_current_user_data, get_user_service
-from app.domain.services import UserService
 from app.domain.entities import UserCreate, UserData, UserResponse, UserUpdate
-
+from app.domain.services import UserService
 
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(
-    prefix='/users',
-    tags=['Users']
-)
+router = APIRouter(prefix='/users', tags=['Users'])
 
 
 @router.post('')
@@ -47,7 +43,10 @@ async def update_user(
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> UserResponse:
     logger.info('Обновление пользователя с ID %s', user_data.id)
-    updated_user = await user_service.update_user_name(user_id=user_data.id, name=user.name)
+    updated_user = await user_service.update_user_name(
+        user_id=user_data.id,
+        name=user.name,
+    )
     logger.info('Пользователь с ID %s обновлён', user_data.id)
     return updated_user
 

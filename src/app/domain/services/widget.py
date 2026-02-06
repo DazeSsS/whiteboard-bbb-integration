@@ -1,13 +1,17 @@
 import logging
-import httpx
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from app.data.models import Widget
 from app.data.repositories import WidgetRepository
-from app.domain.entities import ConfigUpdate, UserData, WidgetCreate, WidgetResponse
-
+from app.domain.entities import (
+    ConfigUpdate,
+    UserData,
+    WidgetCreate,
+    WidgetResponse,
+)
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +25,14 @@ class WidgetService:
         self.session = session
         self.widget_repo = widget_repo
 
-    async def create_widget(self, widget: WidgetCreate) -> WidgetResponse:
+    async def create_widget(
+        self,
+        widget: WidgetCreate,
+    ) -> WidgetResponse:
         widget_obj = await self.widget_repo.get_by_id(id=widget.id)
         if widget_obj:
             return WidgetResponse.model_validate(widget)
-        
+
         widget_dict = widget.model_dump()
         widget_obj = Widget(**widget_dict)
 
@@ -35,9 +42,13 @@ class WidgetService:
 
         return new_widget
 
-    async def update_config(self, user_data: UserData, data: ConfigUpdate) -> list[int]:
+    async def update_config(
+        self,
+        user_data: UserData,
+        data: ConfigUpdate,
+    ) -> list[int]:
         widget_ids = await self.widget_repo.get_ids_by_whiteboard_id(
-            whiteboard_id=data.whiteboard_id
+            whiteboard_id=data.whiteboard_id,
         )
 
         updated_widgets = []
@@ -45,20 +56,16 @@ class WidgetService:
             for widget_id in widget_ids:
                 try:
                     response = await client.put(
-                        url=settings.WHITEBOARD_BASE_URL + f'/api/widget/{widget_id}',
-                        json={
-                            'config': data.config,
-                        },
-                        headers={
-                            'Authorization': user_data.token,
-                        },
+                        url=f'{settings.WHITEBOARD_BASE_URL}/api/widget/{widget_id}',
+                        json={'config': data.config},
+                        headers={'Authorization': user_data.token},
                     )
                     response.raise_for_status()
                     updated_widgets.append(widget_id)
                 except Exception:
                     logger.exception(
                         'Error while updating widget with ID %r',
-                        widget_id
+                        widget_id,
                     )
 
         return updated_widgets

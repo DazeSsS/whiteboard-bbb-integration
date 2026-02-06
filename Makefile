@@ -1,3 +1,25 @@
+# Admin commands
+# --------------
+
+setmoder:
+	docker compose run --build --rm app python3 -m src.scripts.set_moderator
+
+getstats:
+	docker compose run --build --rm app python3 -m src.scripts.get_stats
+
+# Code check
+# ----------
+
+lint:
+	uv run ruff check
+
+format:
+	uv run ruff format
+	uv run ruff check --fix
+
+# Development commands
+# ---------------
+
 revision:
 	docker compose run --build --rm app alembic revision --autogenerate -m "$m"
 
@@ -10,16 +32,13 @@ downgrade:
 drop:
 	docker compose run --build --rm app python3 -m src.scripts.drop_db
 
-setmoder:
-	docker compose run --build --rm app python3 -m src.scripts.set_moderator
-
-getstats:
-	docker compose run --build --rm app python3 -m src.scripts.get_stats
-
 db:
 	docker compose up -d db
 
 rebuild: build down up
+
+# Basic compose commands
+# ----------------------
 
 build:
 	docker compose build

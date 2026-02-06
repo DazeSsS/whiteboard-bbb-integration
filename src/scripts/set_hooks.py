@@ -1,8 +1,9 @@
 import asyncio
+
 from httpx import ConnectTimeout
 
-from config import settings
 from app.domain.services import BBBService
+from config import settings
 
 
 async def set_hooks():
@@ -10,7 +11,7 @@ async def set_hooks():
     try:
         hook_id = await bbb_service.set_hook(
             callback_url=settings.EVENTS_CALLBACK_URL,
-            event_id='meeting-ended'
+            event_id='meeting-ended',
         )
 
         if hook_id is not None:
@@ -21,4 +22,3 @@ async def set_hooks():
 
 if __name__ == '__main__':
     asyncio.run(set_hooks())
-

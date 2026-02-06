@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ReturnCode(str, Enum):
+class ReturnCode(StrEnum):
     SUCCESS = 'SUCCESS'
     FAILED = 'FAILED'

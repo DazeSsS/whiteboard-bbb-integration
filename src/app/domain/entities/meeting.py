@@ -1,5 +1,5 @@
-from pydantic import Field
 from fastapi import Query
+from pydantic import Field
 
 from .base import CamelSchema
 from .query import QuerySchema
@@ -15,14 +15,14 @@ class MeetingCreate(QuerySchema):
         cls,
         name: str = Query(..., alias='name'),
         meeting_ID: str = Query(..., alias='meetingID'),
-        whiteboard_id: int | None = Query(None, alias='whiteboardId')
+        whiteboard_id: int | None = Query(None, alias='whiteboardId'),
     ):
         return cls(
             name=name,
             meeting_ID=meeting_ID,
-            whiteboard_id=whiteboard_id
+            whiteboard_id=whiteboard_id,
         )
-    
+
 
 class MeetingResponse(CamelSchema):
     name: str

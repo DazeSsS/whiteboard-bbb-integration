@@ -13,7 +13,7 @@ ENV PYTHONPATH=/app/src
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --frozen
+RUN uv sync --no-dev --frozen
 
 ENV PATH="/app/.venv/bin:$PATH"
 

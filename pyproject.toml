@@ -17,3 +17,35 @@ dependencies = [
     "uvicorn>=0.38.0",
     "xmltodict>=1.0.2",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.0",
+]
+
+[tool.ruff]
+line-length = 88
+src = ["src/"]
+extend-exclude = ["migrations"]
+force-exclude = true
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E", "W",
+    # pyflakes
+    "F",
+    # isort
+    "I",
+    # tidy imports
+    "TID",
+    # flake8-bugbear
+    "B",
+    # flake8-bandit
+    "S",
+    # pyupgrade
+    "UP"
+]
+
+[tool.ruff.format]
+quote-style = "single"

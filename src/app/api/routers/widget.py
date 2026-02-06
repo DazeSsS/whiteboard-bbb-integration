@@ -4,16 +4,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from app.dependencies import get_current_user_data, get_widget_service
+from app.domain.entities import (
+    ConfigUpdate,
+    UserData,
+    WidgetCreate,
+    WidgetResponse,
+)
 from app.domain.services import WidgetService
-from app.domain.entities import ConfigUpdate, UserData, WidgetCreate, WidgetResponse
-
 
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(
-    tags=['Widget']
-)
+router = APIRouter(tags=['Widget'])
 
 
 @router.post('/widgets')
