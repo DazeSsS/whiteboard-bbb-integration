@@ -16,11 +16,6 @@ engine = create_async_engine(DATABASE_URL)
 async def get_stats(
     internal_id: str,
 ):
-    setup_logging(
-        level=logging.WARNING
-        if settings.ENVIRONMENT == Environment.PROD
-        else logging.DEBUG
-    )
     async with AsyncSession(engine) as session:
         stats_service = get_statistics_service(session)
         meeting_stats = await stats_service.process_stats(
@@ -30,5 +25,11 @@ async def get_stats(
 
 
 if __name__ == '__main__':
+    setup_logging(
+        level=logging.WARNING
+        if settings.ENVIRONMENT == Environment.PROD
+        else logging.DEBUG
+    )
+
     internal_id = input('Введите внутренний идентификатор встречи: ')
     asyncio.run(get_stats(internal_id=internal_id))

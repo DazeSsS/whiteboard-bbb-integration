@@ -35,7 +35,7 @@ class UserService:
         user = await self.user_repo.get_by_id(id=user_id)
 
         if user is None:
-            logger.warning('User with ID %s does not exist', user_id)
+            logger.error('User with ID %s does not exist', user_id)
             raise NotFoundException(entity_name='User')
 
         return user.token
@@ -47,7 +47,7 @@ class UserService:
         user = await self.user_repo.get_by_id(id=user_id)
 
         if user is None:
-            logger.warning('User with ID %s does not exist', user_id)
+            logger.error('User with ID %s does not exist', user_id)
             raise NotFoundException(entity_name='User')
 
         return UserResponse.model_validate(user)
@@ -70,7 +70,7 @@ class UserService:
                 new_user = UserResponse.model_validate(user_obj)
             return new_user
         except IntegrityError as e:
-            logger.warning('User already exists')
+            logger.error('User already exists')
             raise AlreadyExistsException(entity_name='User') from e
 
     async def update_user_name(
@@ -82,7 +82,7 @@ class UserService:
             updated_user = await self.user_repo.update_name(user_id=user_id, name=name)
 
             if updated_user is None:
-                logger.warning('User with ID %s does not exist', user_id)
+                logger.error('User with ID %s does not exist', user_id)
                 raise NotFoundException(entity_name='User')
 
             return UserResponse.model_validate(updated_user)

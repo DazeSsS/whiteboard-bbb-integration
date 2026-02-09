@@ -71,7 +71,7 @@ class MeetingService:
 
             detail = f'{message_key}: {message}'
 
-            logger.warning('BBB error while creating meeting: %s', message)
+            logger.error('BBB error while creating meeting: %s', message)
 
             raise CodeFailed(detail=detail)
 
@@ -105,14 +105,14 @@ class MeetingService:
         async with self.session.begin():
             user = await self.user_repo.get_by_id(id=user_data.id)
             if user is None:
-                logger.warning('User with ID %s does not exist', user_data.id)
+                logger.error('User with ID %s does not exist', user_data.id)
                 raise NotFoundException(entity_name='User')
 
             meeting = await self.meeting_repo.get_last_by_meeting_ID(
                 meeting_ID=join_params.meeting_ID,
             )
             if meeting is None:
-                logger.warning(
+                logger.error(
                     'Meeting with ID %r does not exist',
                     join_params.meeting_ID,
                 )
@@ -193,7 +193,7 @@ class MeetingService:
 
             detail = f'{message_key}: {message}'
 
-            logger.warning('BBB error while getting meetings: %s', message)
+            logger.error('BBB error while getting meetings: %s', message)
 
             raise CodeFailed(detail=detail)
 

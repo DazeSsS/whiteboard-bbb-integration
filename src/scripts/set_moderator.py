@@ -1,10 +1,14 @@
 import asyncio
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.data.repositories import UserRepository
 from app.domain.enums import UserRole
-from config import settings
+from app.logging import setup_logging
+from config import Environment, settings
+
+logger = logging.getLogger(__name__)
 
 DATABASE_URL = settings.get_db_url()
 
@@ -15,7 +19,7 @@ async def set_moderator(
     user_id: int,
 ):
     async with AsyncSession(engine) as session:
-        print('Смена роли...')
+        logger.info('Смена роли...')
 
         try:
             async with session.begin():
@@ -23,15 +27,22 @@ async def set_moderator(
                 user = await user_repo.get_by_id(id=user_id)
                 user.role = UserRole.MODERATOR
         except Exception:
-            print('Ошибка при смене роли...')
+            logger.error('Ошибка при смене роли...')
 
-        print(
-            f'Пользователю с идентификатором {user_id} '
-            f'успешно назначена роль "moderator"'
+        logger.info(
+            'Пользователю с идентификатором %s '
+            'успешно назначена роль "moderator"',
+            user_id
         )
 
 
 if __name__ == '__main__':
+    setup_logging(
+        level=logging.WARNING
+        if settings.ENVIRONMENT == Environment.PROD
+        else logging.DEBUG
+    )
+
     answer = input(
         'Введите идентификатор пользователя, которого нужно сделать модератором: '
     )

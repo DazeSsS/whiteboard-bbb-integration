@@ -52,7 +52,7 @@ class StatisticsService:
     ):
         stats_module = await self.stats_module_repo.get_first_module()
         if stats_module is None:
-            logger.warning('Stats Module does not exist')
+            logger.error('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
 
         token = stats_module.token
@@ -74,7 +74,7 @@ class StatisticsService:
     ):
         stats_module = await self.stats_module_repo.get_first_module()
         if stats_module is None:
-            logger.warning('Stats Module does not exist')
+            logger.error('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
 
         token = stats_module.token
@@ -94,7 +94,7 @@ class StatisticsService:
     ) -> dict:
         stats_module = await self.stats_module_repo.get_first_module()
         if stats_module is None:
-            logger.warning('Stats Module does not exist')
+            logger.error('Stats Module does not exist')
             raise NotFoundException(entity_name='StatsModule')
 
         events_path = await self._get_events_path(

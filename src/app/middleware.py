@@ -20,7 +20,7 @@ class BearerTokenMiddleware(BaseHTTPMiddleware):
                 token = auth_header.split()[1]
                 request.state.token = token
             except Exception:
-                logger.warning('Error while extracting auth token')
+                logger.error('Error while extracting auth token')
 
         response = await call_next(request)
         return response
