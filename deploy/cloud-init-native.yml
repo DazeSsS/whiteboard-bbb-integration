@@ -5,7 +5,7 @@ datasource:
 ssh_pwauth: no
 users:
   - name: ${username}
-    groups: sudo
+    groups: sudo, docker
     shell: /bin/bash
     sudo: 'ALL=(ALL) NOPASSWD:ALL'
     ssh_authorized_keys:
@@ -18,9 +18,7 @@ write_files:
 
       update-locale LANG=en_US.UTF-8
 
-      usermod -aG docker ${username}
-
-      wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh | bash -s -- -v jammy-300 -s ${domain} -e ${email} -g
+      wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v3.0.x-release/bbb-install.sh | bash -s -- -v jammy-300 -s ${domain} -e ${email}
 
       until systemctl is-active --quiet nginx; do
         sleep 10
@@ -121,17 +119,46 @@ write_files:
 
 runcmd:
   - /tmp/setup-bbb.sh
+  - apt-get install bbb-webhooks
   - |
-    cd /home/${username}
-    git clone https://github.com/bigbluebutton/bigbluebutton.git
-    cd bigbluebutton/bigbluebutton-html5/
-    npm install
-    cp /tmp/whiteboard-container.jsx ./imports/ui/components/whiteboard/container.jsx
-    ./deploy.sh
+    cd /opt
+
+    mkdir bbb-source
+    chown ${username}:${username} bbb-source
+    chmod 755 bbb-source
+
+    clone_success=false
+    for i in 1 2 3; do
+      echo "Попытка клонирования #$i"
+      if sudo -u ${username} git clone https://github.com/bigbluebutton/bigbluebutton.git bbb-source; then
+        echo "✅ Успешно с попытки #$i"
+        clone_success=true
+        break
+      fi
+      
+      echo "❌ Не удалось, ждем 5 секунд..."
+      sleep 5
+    done
+
+    if ! $clone_success; then
+      echo "⚠️  Не удалось клонировать BBB, пропускаем сборку"
+    else
+      cd /opt/bbb-source/bigbluebutton-html5/
+      npm install
+
+      cp /tmp/whiteboard-container.jsx ./imports/ui/components/whiteboard/container.jsx
+      chown ${username}:${username} ./imports/ui/components/whiteboard/container.jsx
+
+      ./deploy.sh
+    fi
   - |
-    cd /home/${username}
-    git clone https://github.com/DazeSsS/whiteboard-bbb-integration.git .
-    cp .env.example .env
+    cd /opt
+
+    mkdir whiteboard-bbb-backend
+    chown ${username}:${username} whiteboard-bbb-backend
+    chmod 755 whiteboard-bbb-backend
+
+    sudo -u ${username} git clone https://github.com/DazeSsS/whiteboard-bbb-integration.git whiteboard-bbb-backend
   - |
     cp /tmp/backend-proxy.nginx /usr/share/bigbluebutton/nginx/
     nginx -s reload

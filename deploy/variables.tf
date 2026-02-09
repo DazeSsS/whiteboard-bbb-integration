@@ -6,7 +6,7 @@ variable "disk_size" {
 }
 
 variable "image_id" {
-  description = "Идентификатор образа"
+  description = "Идентификатор образа типа 'Container Optimized'"
   type        = string
   default     = "fd8gm9cegc39t4nsm8cv"
 }
@@ -73,7 +73,6 @@ variable "email" {
 variable "domain" {
   description = "Доменное имя сервера"
   type        = string
-  default     = "example.com"
 }
 
 
@@ -81,13 +80,12 @@ variable "domain" {
 variable "whiteboard_base_url" {
   description = "Адрес вайтборда"
   type        = string
-  default     = "http://example.com"
 }
 
 
 # API settings
 variable "api_prefix" {
-  description = "Путь к API"
+  description = "Путь к API на сервере"
   type        = string
-  default     = "/api"
+  default     = "/api/v1"
 }

@@ -24,4 +24,4 @@ domain = "example.com"
 whiteboard_base_url = "http://example.com"
 
 # API settings
-api_prefix = "/api"
+api_prefix = "/api/v1"
